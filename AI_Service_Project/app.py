@@ -4,8 +4,11 @@
 기술: LangChain + Self-RAG + FAISS + Memory + Streamlit
 [최종발표 버전] RAG 답변 vs 순수 LLM 답변 나란히 비교 출력
 """
-
 import os
+os.environ["KMP_DUPLICATE_LIB_OK"] = "TRUE"   # OMP 중복 오류 해결
+
+import warnings
+warnings.filterwarnings("ignore", category=DeprecationWarning, module="langchain")  # LangChain 경고 숨김
 import streamlit as st
 from dotenv import load_dotenv
 from typing import Literal
