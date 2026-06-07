@@ -2,6 +2,7 @@
 ⚖️ 법률 사건 Self-RAG 챗봇
 대상: 일반 시민 — 사건 발생 시 즉시 관련 법률/판례/절차 조회
 기술: LangChain + Self-RAG + FAISS + Memory + Streamlit
+[최종발표 버전] RAG 답변 vs 순수 LLM 답변 나란히 비교 출력
 """
 
 import os
@@ -21,9 +22,6 @@ from langchain.memory import ConversationBufferWindowMemory
 
 load_dotenv()
 
-# ─────────────────────────────────────────────
-# 페이지 설정
-# ─────────────────────────────────────────────
 st.set_page_config(
     page_title="법률 사건 Q&A 챗봇",
     page_icon="⚖️",
@@ -32,22 +30,19 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* ── 라이트 모드 기본 배경 ── */
     [data-testid="stAppViewContainer"] { background: #f8f9fb; }
     [data-testid="stSidebar"]          { background: #ffffff; border-right: 1px solid #e5e7eb; }
 
-    /* ── 레이아웃 고정: 화면 비율 변화에도 컬럼이 흔들리지 않게 ── */
     [data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: flex-start !important;
         gap: 1.2rem !important;
     }
     [data-testid="stHorizontalBlock"] > div {
-        min-width: 0 !important;      /* flex 항목이 넘치지 않도록 */
-        flex-shrink: 0 !important;    /* 비율 유지 — 찌그러지지 않음 */
+        min-width: 0 !important;
+        flex-shrink: 0 !important;
     }
 
-    /* ── 헤더 ── */
     .main-header {
         background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
         color: white;
@@ -58,51 +53,61 @@ st.markdown("""
     .main-header h1  { margin: 0; font-size: 1.8rem; letter-spacing: -0.4px; }
     .main-header .sub { margin: 0.35rem 0 0; opacity: 0.82; font-size: 0.9rem; }
     .main-header .warn {
-        margin: 0.8rem 0 0;
-        font-size: 0.78rem;
-        background: #ffffff22;
-        border: 1px solid #ffffff44;
-        border-radius: 6px;
-        padding: 0.4rem 0.8rem;
-        color: #fef3c7;
+        margin: 0.8rem 0 0; font-size: 0.78rem;
+        background: #ffffff22; border: 1px solid #ffffff44;
+        border-radius: 6px; padding: 0.4rem 0.8rem; color: #fef3c7;
     }
 
-    /* ── 면책 고지 ── */
+    /* ── 비교 패널 헤더 ── */
+    .panel-header-rag {
+        background: linear-gradient(90deg, #1e3a8a, #2563eb);
+        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
+        font-weight: 700; font-size: 0.9rem;
+    }
+    .panel-header-llm {
+        background: linear-gradient(90deg, #92400e, #d97706);
+        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
+        font-weight: 700; font-size: 0.9rem;
+    }
+    .panel-body {
+        background: #ffffff; border: 1px solid #e2e8f0;
+        border-top: none; border-radius: 0 0 8px 8px;
+        padding: 1rem; min-height: 120px;
+    }
+    .diff-badge {
+        display: inline-block; font-size: 0.72rem; font-weight: 600;
+        padding: 2px 8px; border-radius: 99px; margin-top: 0.4rem;
+    }
+    .badge-rag  { background: #dbeafe; color: #1d4ed8; }
+    .badge-llm  { background: #fef3c7; color: #92400e; }
+    .badge-same { background: #dcfce7; color: #15803d; }
+
     .disclaimer {
-        background: #fff7ed;
-        border: 1px solid #fdba74;
-        border-radius: 8px;
-        padding: 0.7rem 1rem;
-        font-size: 0.78rem;
-        color: #9a3412;
-        margin-top: 0.8rem;
+        background: #fff7ed; border: 1px solid #fdba74;
+        border-radius: 8px; padding: 0.7rem 1rem;
+        font-size: 0.78rem; color: #9a3412; margin-top: 0.8rem;
     }
-
-    /* ── RAG 태그 ── */
     .tag-rag  { font-size: 0.75rem; color: #15803d; }
     .tag-llm  { font-size: 0.75rem; color: #b45309; }
 </style>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# 헤더
-# ─────────────────────────────────────────────
+# ── 헤더 ──────────────────────────────────────────────────────────
 st.markdown("""
 <div class="main-header">
   <h1>⚖️ 법률 사건 Q&A 챗봇</h1>
-  <p class="sub">사건 발생 시 즉시 관련 법률 · 판례 · 대처 절차를 확인하세요 | Self-RAG 기반</p>
+  <p class="sub">사건 발생 시 즉시 관련 법률 · 판례 · 대처 절차를 확인하세요 | Self-RAG vs 순수 LLM 비교</p>
   <p class="warn">⚠️ 본 서비스는 법률 정보 제공 목적이며, 법적 효력이 있는 법률 자문이 아닙니다. 중요 사안은 반드시 변호사와 상담하세요.</p>
 </div>
 """, unsafe_allow_html=True)
 
-# ─────────────────────────────────────────────
-# 세션 상태 초기화
-# ─────────────────────────────────────────────
+# ── 세션 상태 ─────────────────────────────────────────────────────
 for key, default in {
     "chat_history": [],
     "memory": None,
     "vectordb": None,
     "self_rag": None,
+    "llm_direct": None,
     "process_log": [],
     "pending_question": None,
 }.items():
@@ -115,9 +120,7 @@ if st.session_state.memory is None:
     )
 
 
-# ─────────────────────────────────────────────
-# Pydantic 모델 (Self-RAG 판단 토큰)
-# ─────────────────────────────────────────────
+# ── Pydantic 모델 ─────────────────────────────────────────────────
 class RetrievalResponse(BaseModel):
     Reasoning: str = Field(description="법률 문서 검색 필요 여부 추론 (2~3문장)")
     Retrieve: Literal["Yes", "No"] = Field(description="검색 필요 여부")
@@ -138,16 +141,13 @@ class UtilityResponse(BaseModel):
     ISUSE: Literal[1, 2, 3, 4, 5] = Field(description="유용성 점수 (1~5)")
 
 
-# ─────────────────────────────────────────────
-# Self-RAG 클래스 (예시 ipynb 구조 기반)
-# ─────────────────────────────────────────────
+# ── LegalSelfRAG ──────────────────────────────────────────────────
 class LegalSelfRAG:
     def __init__(self, vectorstore, llm, top_k=4):
         self.vectorstore = vectorstore
         self.top_k = top_k
         self.log = []
 
-        # 1. 검색 필요 여부 판단
         retrieval_prompt = PromptTemplate(
             input_variables=["query", "chat_history"],
             template="""당신은 법률 Q&A 챗봇의 검색 판단 모듈입니다.
@@ -169,7 +169,6 @@ class LegalSelfRAG:
         )
         self.retrieval_chain = retrieval_prompt | llm.with_structured_output(RetrievalResponse)
 
-        # 2+3. 관련성 평가
         relevance_prompt = PromptTemplate(
             input_variables=["query", "context"],
             template="""아래 법률 문서가 질문에 답하는 데 유용한지 판단하세요.
@@ -180,7 +179,6 @@ class LegalSelfRAG:
         )
         self.relevance_chain = relevance_prompt | llm.with_structured_output(RelevanceResponse)
 
-        # 4. 답변 생성
         generation_prompt = PromptTemplate(
             input_variables=["query", "context", "chat_history"],
             template="""당신은 법률 정보를 제공하는 챗봇입니다.
@@ -202,7 +200,6 @@ class LegalSelfRAG:
         )
         self.generation_chain = generation_prompt | llm.with_structured_output(GenerationResponse)
 
-        # 5. 지원도 평가
         support_prompt = PromptTemplate(
             input_variables=["query", "response", "context"],
             template="""답변이 제시된 법률 문서에 얼마나 근거하는지 평가하세요.
@@ -216,7 +213,6 @@ class LegalSelfRAG:
         )
         self.support_chain = support_prompt | llm.with_structured_output(SupportResponse)
 
-        # 6. 유용성 평가
         utility_prompt = PromptTemplate(
             input_variables=["query", "response"],
             template="""다음 법률 답변이 질문자에게 얼마나 실질적으로 유용한지 1~5점으로 평가하세요.
@@ -239,7 +235,6 @@ class LegalSelfRAG:
         self.log = []
         chat_history = self._fmt_history(memory)
 
-        # 1단계
         self.log.append(("1️⃣ 검색 판단", "법률 문서 검색 필요 여부 판단 중..."))
         ret = self.retrieval_chain.invoke({"query": query, "chat_history": chat_history})
         self.log[-1] = ("1️⃣ 검색 판단", f"**{ret.Retrieve}** — {ret.Reasoning}")
@@ -249,13 +244,11 @@ class LegalSelfRAG:
             gen = self.generation_chain.invoke({"query": query, "context": "(검색 없음)", "chat_history": chat_history})
             return {"answer": gen.response, "used_rag": False, "log": self.log}
 
-        # 2단계
         self.log.append(("2️⃣ 법률 문서 검색", f"FAISS에서 상위 {self.top_k}개 문서 검색 중..."))
         docs = self.vectorstore.similarity_search(query, k=self.top_k)
         contexts = [d.page_content for d in docs]
         self.log[-1] = ("2️⃣ 법률 문서 검색", f"{len(contexts)}개 문서 검색 완료")
 
-        # 3단계
         self.log.append(("3️⃣ 관련성 필터링", "각 문서의 법률적 관련성 평가 중..."))
         relevant = []
         for ctx in contexts:
@@ -269,7 +262,6 @@ class LegalSelfRAG:
             gen = self.generation_chain.invoke({"query": query, "context": "(관련 법률 문서 없음 — 일반 지식 기반)", "chat_history": chat_history})
             return {"answer": gen.response, "used_rag": False, "log": self.log}
 
-        # 4단계
         self.log.append(("4️⃣ 법률 답변 생성", f"{len(relevant)}개 문서 기반 답변 생성 중..."))
         responses = []
         for ctx in relevant:
@@ -277,7 +269,6 @@ class LegalSelfRAG:
             responses.append((gen.response, ctx))
         self.log[-1] = ("4️⃣ 법률 답변 생성", f"{len(responses)}개 후보 답변 생성 완료")
 
-        # 5~6단계
         self.log.append(("5️⃣ 품질 평가", "지원도 · 유용성 평가 후 최적 답변 선택 중..."))
         assessed = []
         for resp, ctx in responses:
@@ -298,9 +289,37 @@ class LegalSelfRAG:
         return max(responses, key=lambda x: x[2])
 
 
-# ─────────────────────────────────────────────
-# 사이드바
-# ─────────────────────────────────────────────
+# ── 순수 LLM 직접 답변 (RAG 없음) ────────────────────────────────
+def get_llm_direct_answer(query: str, llm, memory) -> str:
+    """벡터DB 검색 없이 LLM 파라메트릭 지식만으로 답변"""
+    msgs = memory.chat_memory.messages[-6:]
+    history_lines = []
+    for m in msgs:
+        role = "사용자" if isinstance(m, HumanMessage) else "챗봇"
+        history_lines.append(f"{role}: {m.content}")
+    chat_history = "\n".join(history_lines) if history_lines else "(없음)"
+
+    prompt = PromptTemplate(
+        input_variables=["query", "chat_history"],
+        template="""당신은 법률 정보를 제공하는 AI 어시스턴트입니다.
+외부 문서 검색 없이 학습된 지식만으로 아래 질문에 답변하세요.
+
+대화 이력:
+{chat_history}
+
+질문: {query}
+
+답변 시 주의:
+- 알고 있는 법률 지식을 바탕으로 최대한 정확하게 답하세요.
+- 불확실한 내용은 "확인이 필요합니다"라고 명시하세요.
+- 마지막에 "중요한 사안은 변호사 상담을 권장합니다" 추가"""
+    )
+    chain = prompt | llm
+    result = chain.invoke({"query": query, "chat_history": chat_history})
+    return result.content if hasattr(result, "content") else str(result)
+
+
+# ── 사이드바 ──────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ 설정")
     api_key = st.text_input("OpenAI API Key", type="password",
@@ -350,11 +369,11 @@ with st.sidebar:
                     embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
                     vectordb = FAISS.from_documents(all_docs, embedding)
                     vectordb.save_local("faiss_legal_index")
+                    llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
 
-                    llm = ChatOpenAI(model=model_name, max_tokens=2000,
-                                     temperature=0.1, api_key=api_key)
                     st.session_state.vectordb = vectordb
                     st.session_state.self_rag = LegalSelfRAG(vectordb, llm, top_k=top_k)
+                    st.session_state.llm_direct = llm
                     st.session_state.chat_history = []
                     st.session_state.memory = ConversationBufferWindowMemory(
                         k=5, return_messages=True, memory_key="chat_history"
@@ -376,10 +395,10 @@ with st.sidebar:
                     embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
                     vectordb = FAISS.load_local("faiss_legal_index", embedding,
                                                 allow_dangerous_deserialization=True)
-                    llm = ChatOpenAI(model=model_name, max_tokens=2000,
-                                     temperature=0.1, api_key=api_key)
+                    llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
                     st.session_state.vectordb = vectordb
                     st.session_state.self_rag = LegalSelfRAG(vectordb, llm, top_k=top_k)
+                    st.session_state.llm_direct = llm
                     st.success("✅ 법률 DB 로드 완료!")
                 except Exception as e:
                     st.error(f"오류: {e}")
@@ -397,10 +416,12 @@ with st.sidebar:
     else:
         st.warning("🔴 DB 없음 — 문서를 업로드하세요")
 
+    st.divider()
+    st.markdown("**📊 비교 모드 설명**")
+    st.caption("왼쪽: Self-RAG (법률 문서 기반)\n오른쪽: 순수 LLM (학습 지식만)")
 
-# ─────────────────────────────────────────────
-# 메인: 빠른 사건 유형 선택 + 채팅
-# ─────────────────────────────────────────────
+
+# ── 메인 ─────────────────────────────────────────────────────────
 
 # 빠른 사건 유형 버튼
 st.markdown("#### 🚨 사건 유형 빠른 선택")
@@ -420,20 +441,43 @@ for i, (label, question) in enumerate(case_types):
             st.session_state.pending_question = question
 
 st.divider()
-st.markdown("#### 💬 대화")
 
-# 대화 기록 출력
+# ── 비교 컬럼 헤더 ────────────────────────────────────────────────
+col_rag, col_llm = st.columns(2)
+with col_rag:
+    st.markdown("""
+    <div class="panel-header-rag">
+        📖 Self-RAG 답변 &nbsp;|&nbsp; 법률 문서 기반 검색·생성
+    </div>
+    """, unsafe_allow_html=True)
+with col_llm:
+    st.markdown("""
+    <div class="panel-header-llm">
+        🤖 순수 LLM 답변 &nbsp;|&nbsp; 학습 지식만 사용 (문서 검색 없음)
+    </div>
+    """, unsafe_allow_html=True)
+
+st.markdown("")  # 여백
+
+# ── 대화 기록 출력 (비교 뷰) ─────────────────────────────────────
 for msg in st.session_state.chat_history:
-    with st.chat_message(msg["role"]):
-        st.markdown(msg["content"])
-        if msg["role"] == "assistant":
-            used = msg.get("used_rag")
-            if used is True:
-                st.markdown('<span class="tag-rag">📖 법률 문서 기반 (Self-RAG)</span>', unsafe_allow_html=True)
-            elif used is False:
-                st.markdown('<span class="tag-llm">⚡ 일반 지식 기반</span>', unsafe_allow_html=True)
+    if msg["role"] == "user":
+        st.chat_message("user").markdown(msg["content"])
+    else:
+        col_r, col_l = st.columns(2)
+        with col_r:
+            with st.container(border=True):
+                st.markdown(msg.get("rag_answer", ""), unsafe_allow_html=False)
+                if msg.get("used_rag"):
+                    st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="tag-llm">⚡ LLM 직접 생성</span>', unsafe_allow_html=True)
+        with col_l:
+            with st.container(border=True):
+                st.markdown(msg.get("llm_answer", ""), unsafe_allow_html=False)
+                st.markdown('<span class="tag-llm">🤖 순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
 
-# 입력 처리 (버튼 클릭 or 직접 입력)
+# ── 입력 처리 ────────────────────────────────────────────────────
 user_input = st.chat_input("사건 내용을 자세히 설명하거나 법률 질문을 입력하세요...")
 if st.session_state.pending_question:
     user_input = st.session_state.pending_question
@@ -443,39 +487,53 @@ if user_input:
     if not st.session_state.self_rag:
         st.warning("사이드바에서 법률 PDF를 업로드하고 DB를 구축하세요.")
     else:
-        with st.chat_message("user"):
-            st.markdown(user_input)
+        # 사용자 메시지 표시
+        st.chat_message("user").markdown(user_input)
         st.session_state.chat_history.append({"role": "user", "content": user_input})
 
-        with st.chat_message("assistant"):
-            with st.spinner("Self-RAG가 법률 문서를 분석 중입니다..."):
-                result = st.session_state.self_rag.process_query(
-                    user_input, st.session_state.memory
-                )
-            answer = result["answer"]
-            used_rag = result["used_rag"]
-            st.markdown(answer)
-            if used_rag:
-                st.markdown('<span class="tag-rag">📖 법률 문서 기반 (Self-RAG)</span>', unsafe_allow_html=True)
-            else:
-                st.markdown('<span class="tag-llm">⚡ 일반 지식 기반</span>', unsafe_allow_html=True)
+        # 두 답변 동시 생성
+        col_r, col_l = st.columns(2)
 
+        with col_r:
+            with st.container(border=True):
+                with st.spinner("📖 Self-RAG 분석 중..."):
+                    rag_result = st.session_state.self_rag.process_query(
+                        user_input, st.session_state.memory
+                    )
+                rag_answer  = rag_result["answer"]
+                used_rag    = rag_result["used_rag"]
+                st.markdown(rag_answer)
+                if used_rag:
+                    st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                else:
+                    st.markdown('<span class="tag-llm">⚡ LLM 직접 생성</span>', unsafe_allow_html=True)
+
+        with col_l:
+            with st.container(border=True):
+                with st.spinner("🤖 순수 LLM 답변 생성 중..."):
+                    llm_answer = get_llm_direct_answer(
+                        user_input, st.session_state.llm_direct, st.session_state.memory
+                    )
+                st.markdown(llm_answer)
+                st.markdown('<span class="tag-llm">🤖 순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
+
+        # 세션 저장
         st.session_state.chat_history.append({
-            "role": "assistant", "content": answer, "used_rag": used_rag
+            "role":       "assistant",
+            "content":    rag_answer,   # 하위 호환용
+            "rag_answer": rag_answer,
+            "llm_answer": llm_answer,
+            "used_rag":   used_rag,
         })
-        st.session_state.process_log = result["log"]
+        st.session_state.process_log = rag_result["log"]
         st.session_state.memory.chat_memory.add_user_message(user_input)
-        st.session_state.memory.chat_memory.add_ai_message(answer)
+        st.session_state.memory.chat_memory.add_ai_message(rag_answer)
         st.rerun()
 
-# 면책 고지
+# ── 면책 고지 ────────────────────────────────────────────────────
 st.markdown("""
 <div class="disclaimer">
 ⚠️ 본 챗봇은 법률 정보 제공 목적이며, 법적 효력이 있는 법률 자문이 아닙니다.
 실제 법적 분쟁에는 반드시 자격 있는 변호사와 상담하시기 바랍니다.
 </div>
 """, unsafe_allow_html=True)
-
-
-
-
