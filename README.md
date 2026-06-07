@@ -67,6 +67,7 @@ OPENAI_API_KEY=sk-...
 
 # 3. 앱 실행
 streamlit run app.py
+streamlit run app.py --server.fileWatcherType none
 
 # 4. RAGAS 성능 평가
 python ragas_eval.py 형법.pdf
