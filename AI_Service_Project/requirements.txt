@@ -3,7 +3,7 @@ langchain-openai==0.3.17
 langchain-community==0.3.24
 langchain-text-splitters==0.3.8
 openai==1.82.0
-faiss-cpu==1.10.0
+faiss-cpu==1.7.4
 streamlit==1.45.1
 python-dotenv==1.1.0
 pydantic==2.11.4
