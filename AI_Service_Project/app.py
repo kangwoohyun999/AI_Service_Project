@@ -26,7 +26,7 @@ from langchain.memory import ConversationBufferWindowMemory
 load_dotenv()
 
 st.set_page_config(
-    page_title="법률 사건 Q&A 챗봇",
+    page_title="법률 사건 Self-RAG 챗봇",
     page_icon="⚖️",
     layout="wide",
 )
@@ -98,7 +98,7 @@ st.markdown("""
 # ── 헤더 ──────────────────────────────────────────────────────────
 st.markdown("""
 <div class="main-header">
-  <h1>⚖️ 법률 사건 Q&A 챗봇</h1>
+  <h1>⚖️ 법률 사건 Self-RAG 챗봇</h1>
   <p class="sub">사건 발생 시 즉시 관련 법률 · 판례 · 대처 절차를 확인하세요 | Self-RAG vs 순수 LLM 비교</p>
   <p class="warn">⚠️ 본 서비스는 법률 정보 제공 목적이며, 법적 효력이 있는 법률 자문이 아닙니다. 중요 사안은 반드시 변호사와 상담하세요.</p>
 </div>
