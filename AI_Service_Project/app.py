@@ -33,67 +33,182 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    [data-testid="stAppViewContainer"] { background: #f8f9fb; }
-    [data-testid="stSidebar"]          { background: #ffffff; border-right: 1px solid #e5e7eb; }
+    /* 기본 Streamlit 사이드바 + 토글 버튼 숨김 */
+    [data-testid="stSidebar"],
+    [data-testid="collapsedControl"] { display: none !important; }
 
+    /* 메인 영역 전체 폭 */
+    [data-testid="stAppViewContainer"] { background: #f8f9fb; }
+    .main .block-container {
+        max-width: 100% !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+
+    /* 고정 설정 버튼 (스크롤해도 우상단 고정) */
+    #settings-fab {
+        position: fixed !important;
+        top: 12px !important;
+        right: 16px !important;
+        z-index: 999999 !important;
+        background: #2563eb;
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 10px rgba(37,99,235,0.4);
+    }
+    #settings-fab:hover { background: #1d4ed8; }
+
+    /* 어두운 오버레이 */
+    #modal-overlay {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0,0,0,0.4);
+        z-index: 99990;
+    }
+    body.modal-open #modal-overlay { display: block; }
+
+    /* 설정 패널 (우측 슬라이드, 메인 폭 변화 없음) */
+    #settings-panel {
+        position: fixed !important;
+        top: 0 !important;
+        right: -400px !important;
+        width: 360px !important;
+        height: 100vh !important;
+        background: #fff;
+        border-left: 1px solid #d1d5db;
+        box-shadow: -6px 0 24px rgba(0,0,0,0.14);
+        z-index: 99995 !important;
+        overflow-y: auto;
+        transition: right 0.28s cubic-bezier(.4,0,.2,1);
+    }
+    body.modal-open #settings-panel { right: 0 !important; }
+
+    /* 패널 헤더 */
+    #panel-hdr {
+        position: sticky; top: 0; z-index: 2;
+        background: #1e3a8a; color: #fff;
+        padding: 13px 18px;
+        font-weight: 700; font-size: 15px;
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    #panel-hdr button {
+        background: none; border: none; color: #fff;
+        font-size: 20px; cursor: pointer; line-height: 1; padding: 0 2px;
+    }
+
+    /* 패널 안 Streamlit 사이드바 정리 */
+    #settings-panel [data-testid="stSidebar"] {
+        display: block !important;
+        position: static !important;
+        width: 100% !important;
+        height: auto !important;
+        background: #fff !important;
+        border: none !important;
+        box-shadow: none !important;
+        min-height: unset !important;
+    }
+
+    /* 레이아웃 고정 */
     [data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: flex-start !important;
         gap: 1.2rem !important;
     }
     [data-testid="stHorizontalBlock"] > div {
-        min-width: 0 !important;
-        flex-shrink: 0 !important;
+        min-width: 0 !important; flex-shrink: 0 !important;
     }
 
+    /* 앱 헤더 */
     .main-header {
-        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
-        color: white;
-        padding: 1.5rem 2rem;
-        border-radius: 12px;
-        margin-bottom: 1.4rem;
+        background: linear-gradient(135deg,#1e3a8a,#2563eb);
+        color:#fff; padding:1.4rem 2rem; border-radius:12px; margin-bottom:1.2rem;
     }
-    .main-header h1  { margin: 0; font-size: 1.8rem; letter-spacing: -0.4px; }
-    .main-header .sub { margin: 0.35rem 0 0; opacity: 0.82; font-size: 0.9rem; }
+    .main-header h1  { margin:0; font-size:1.7rem; letter-spacing:-.3px; }
+    .main-header .sub { margin:.3rem 0 0; opacity:.85; font-size:.88rem; }
     .main-header .warn {
-        margin: 0.8rem 0 0; font-size: 0.78rem;
-        background: #ffffff22; border: 1px solid #ffffff44;
-        border-radius: 6px; padding: 0.4rem 0.8rem; color: #fef3c7;
+        margin:.7rem 0 0; font-size:.77rem;
+        background:#ffffff22; border:1px solid #ffffff44;
+        border-radius:6px; padding:.35rem .8rem; color:#fef3c7;
     }
 
-    /* ── 비교 패널 헤더 ── */
+    /* 비교 패널 헤더 */
     .panel-header-rag {
-        background: linear-gradient(90deg, #1e3a8a, #2563eb);
-        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
-        font-weight: 700; font-size: 0.9rem;
+        background:linear-gradient(90deg,#1e3a8a,#2563eb);
+        color:#fff; padding:.5rem 1rem; border-radius:8px 8px 0 0;
+        font-weight:700; font-size:.9rem;
     }
     .panel-header-llm {
-        background: linear-gradient(90deg, #92400e, #d97706);
-        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
-        font-weight: 700; font-size: 0.9rem;
+        background:linear-gradient(90deg,#92400e,#d97706);
+        color:#fff; padding:.5rem 1rem; border-radius:8px 8px 0 0;
+        font-weight:700; font-size:.9rem;
     }
-    .panel-body {
-        background: #ffffff; border: 1px solid #e2e8f0;
-        border-top: none; border-radius: 0 0 8px 8px;
-        padding: 1rem; min-height: 120px;
-    }
-    .diff-badge {
-        display: inline-block; font-size: 0.72rem; font-weight: 600;
-        padding: 2px 8px; border-radius: 99px; margin-top: 0.4rem;
-    }
-    .badge-rag  { background: #dbeafe; color: #1d4ed8; }
-    .badge-llm  { background: #fef3c7; color: #92400e; }
-    .badge-same { background: #dcfce7; color: #15803d; }
-
     .disclaimer {
-        background: #fff7ed; border: 1px solid #fdba74;
-        border-radius: 8px; padding: 0.7rem 1rem;
-        font-size: 0.78rem; color: #9a3412; margin-top: 0.8rem;
+        background:#fff7ed; border:1px solid #fdba74;
+        border-radius:8px; padding:.65rem 1rem;
+        font-size:.77rem; color:#9a3412; margin-top:.8rem;
     }
-    .tag-rag  { font-size: 0.75rem; color: #15803d; }
-    .tag-llm  { font-size: 0.75rem; color: #b45309; }
+    .tag-rag { font-size:.75rem; color:#15803d; }
+    .tag-llm { font-size:.75rem; color:#b45309; }
 </style>
-""", unsafe_allow_html=True)
+
+<!-- 고정 설정 버튼 -->
+<button id="settings-fab" onclick="openPanel()">&#9881;&#65039; 설정</button>
+
+<!-- 오버레이 -->
+<div id="modal-overlay" onclick="closePanel()"></div>
+
+<!-- 설정 패널 -->
+<div id="settings-panel">
+  <div id="panel-hdr">
+    <span>&#9881;&#65039; 설정</span>
+    <button onclick="closePanel()">&#x2715;</button>
+  </div>
+  <div id="panel-content" style="padding:0;"></div>
+</div>
+
+<script>
+(function(){
+  window.openPanel  = function(){ document.body.classList.add('modal-open'); };
+  window.closePanel = function(){ document.body.classList.remove('modal-open'); };
+
+  function relocate() {
+    var sb  = document.querySelector('[data-testid="stSidebar"]');
+    var dst = document.getElementById('panel-content');
+    if (!sb || !dst || dst.contains(sb)) return;
+    sb.style.cssText = [
+      'display:block!important',
+      'position:static!important',
+      'width:100%!important',
+      'height:auto!important',
+      'box-shadow:none!important',
+      'border:none!important',
+      'background:#fff!important',
+      'min-height:unset!important'
+    ].join(';');
+    dst.appendChild(sb);
+  }
+
+  function init() {
+    relocate();
+    new MutationObserver(function(ms){
+      for(var i=0;i<ms.length;i++){
+        if(ms[i].addedNodes.length){ relocate(); break; }
+      }
+    }).observe(document.body,{childList:true,subtree:true});
+  }
+
+  if(document.readyState==='loading')
+    document.addEventListener('DOMContentLoaded',function(){setTimeout(init,500);});
+  else
+    setTimeout(init,500);
+})();
+</script>""", unsafe_allow_html=True)
 
 # ── 헤더 ──────────────────────────────────────────────────────────
 st.markdown("""
@@ -243,9 +358,8 @@ class LegalSelfRAG:
         self.log[-1] = ("1️⃣ 검색 판단", f"**{ret.Retrieve}** — {ret.Reasoning}")
 
         if ret.Retrieve == "No":
-            self.log.append(("⚡ 직접 생성", "일반 지식으로 답변합니다"))
-            gen = self.generation_chain.invoke({"query": query, "context": "(검색 없음)", "chat_history": chat_history})
-            return {"answer": gen.response, "used_rag": False, "log": self.log}
+            self.log.append(("⚠️ 관련 문서 없음", "업로드된 문서에서 관련 법률을 찾지 못했습니다"))
+            return {"answer": "문서에 관련 법 조항이 없습니다.", "used_rag": False, "no_doc": True, "log": self.log}
 
         self.log.append(("2️⃣ 법률 문서 검색", f"FAISS에서 상위 {self.top_k}개 문서 검색 중..."))
         docs = self.vectorstore.similarity_search(query, k=self.top_k)
@@ -262,8 +376,7 @@ class LegalSelfRAG:
 
         if not relevant:
             self.log.append(("⚠️ 관련 문서 없음", "업로드된 문서에서 관련 법률을 찾지 못했습니다"))
-            gen = self.generation_chain.invoke({"query": query, "context": "(관련 법률 문서 없음 — 일반 지식 기반)", "chat_history": chat_history})
-            return {"answer": gen.response, "used_rag": False, "log": self.log}
+            return {"answer": "문서에 관련 법 조항이 없습니다.", "used_rag": False, "no_doc": True, "log": self.log}
 
         self.log.append(("4️⃣ 법률 답변 생성", f"{len(relevant)}개 문서 기반 답변 생성 중..."))
         responses = []
@@ -280,8 +393,11 @@ class LegalSelfRAG:
             assessed.append((resp, sup.ISSUP, int(util.ISUSE)))
 
         best = self._select_best(assessed)
-        self.log[-1] = ("5️⃣ 품질 평가", f"최종 선택 → 지원도: **{best[1]}**, 유용성: **{best[2]}/5**")
+        if best is None:
+            self.log[-1] = ("⚠️ 관련 문서 없음", "검색된 문서가 질문과 관련이 없습니다")
+            return {"answer": "문서에 관련 법 조항이 없습니다.", "used_rag": False, "no_doc": True, "log": self.log}
 
+        self.log[-1] = ("5️⃣ 품질 평가", f"최종 선택 → 지원도: **{best[1]}**, 유용성: **{best[2]}/5**")
         return {"answer": best[0], "used_rag": True, "log": self.log}
 
     def _select_best(self, responses):
@@ -289,7 +405,8 @@ class LegalSelfRAG:
             subset = [r for r in responses if r[1] == level]
             if subset:
                 return max(subset, key=lambda x: x[2])
-        return max(responses, key=lambda x: x[2])
+        # No support만 남은 경우 → 문서 근거 없음 처리
+        return None
 
 
 # ── 순수 LLM 직접 답변 (RAG 없음) ────────────────────────────────
@@ -324,7 +441,6 @@ def get_llm_direct_answer(query: str, llm, memory) -> str:
 
 # ── 사이드바 ──────────────────────────────────────────────────────
 with st.sidebar:
-    st.header("⚙️ 설정")
 
     # Streamlit Cloud secrets 우선, 없으면 환경변수, 없으면 빈칸
     _default_key = ""
@@ -337,7 +453,7 @@ with st.sidebar:
     model_name = st.selectbox("모델", ["gpt-4o-mini", "gpt-4o"], index=0)
 
     st.divider()
-    st.subheader("📂 법률 문서 업로드")
+    st.subheader("📂 DB 구축")
     st.caption("형법, 민법, 판례집, 법령 PDF 등을 업로드하세요")
     uploaded_files = st.file_uploader(
         "법률 PDF 업로드 (복수 가능)",
@@ -396,26 +512,6 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"오류: {e}")
 
-    load_btn = st.button("📥 저장된 DB 불러오기", use_container_width=True)
-    if load_btn:
-        if not api_key:
-            st.error("API Key를 입력하세요.")
-        elif not os.path.exists(FAISS_PATH):
-            st.warning("저장된 DB가 없습니다. 먼저 PDF를 업로드하세요.")
-        else:
-            with st.spinner("DB 로딩 중..."):
-                try:
-                    embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
-                    vectordb = FAISS.load_local(FAISS_PATH, embedding,
-                                                allow_dangerous_deserialization=True)
-                    llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
-                    st.session_state.vectordb = vectordb
-                    st.session_state.self_rag = LegalSelfRAG(vectordb, llm, top_k=top_k)
-                    st.session_state.llm_direct = llm
-                    st.success("✅ 법률 DB 로드 완료!")
-                except Exception as e:
-                    st.error(f"오류: {e}")
-
     if st.button("🗑️ 대화 초기화", use_container_width=True):
         st.session_state.chat_history = []
         st.session_state.memory = ConversationBufferWindowMemory(
@@ -424,14 +520,43 @@ with st.sidebar:
         st.rerun()
 
     st.divider()
+    st.subheader("📥 기존 FAISS DB 업로드")
+    st.caption("이전에 저장한 index.faiss / index.pkl 파일을 업로드하세요")
+    faiss_file = st.file_uploader("index.faiss", type=["faiss"], key="faiss_file")
+    pkl_file   = st.file_uploader("index.pkl",   type=["pkl"],   key="pkl_file")
+
+    load_faiss_btn = st.button("📂 업로드된 DB 불러오기", use_container_width=True)
+    if load_faiss_btn:
+        if not api_key:
+            st.error("API Key를 입력하세요.")
+        elif not faiss_file or not pkl_file:
+            st.warning("index.faiss 와 index.pkl 파일을 모두 업로드하세요.")
+        else:
+            with st.spinner("DB 로딩 중..."):
+                try:
+                    import shutil as _shutil
+                    os.makedirs(FAISS_PATH, exist_ok=True)
+                    with open(os.path.join(FAISS_PATH, "index.faiss"), "wb") as f:
+                        f.write(faiss_file.read())
+                    with open(os.path.join(FAISS_PATH, "index.pkl"), "wb") as f:
+                        f.write(pkl_file.read())
+                    embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
+                    vectordb = FAISS.load_local(FAISS_PATH, embedding,
+                                                allow_dangerous_deserialization=True)
+                    llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
+                    st.session_state.vectordb = vectordb
+                    st.session_state.self_rag = LegalSelfRAG(vectordb, llm, top_k=top_k)
+                    st.session_state.llm_direct = llm
+                    st.success("✅ FAISS DB 로드 완료!")
+                except Exception as e:
+                    st.error(f"오류: {e}")
+
+    st.divider()
     if st.session_state.vectordb:
         st.success("🟢 법률 DB 연결됨")
     else:
         st.warning("🔴 DB 없음 — 문서를 업로드하세요")
 
-    st.divider()
-    st.markdown("**📊 비교 모드 설명**")
-    st.caption("왼쪽: Self-RAG (법률 문서 기반)\n오른쪽: 순수 LLM (학습 지식만)")
 
 
 # ── 메인 ─────────────────────────────────────────────────────────
@@ -480,9 +605,17 @@ for msg in st.session_state.chat_history:
         col_r, col_l = st.columns(2)
         with col_r:
             with st.container(border=True):
-                st.markdown(msg.get("rag_answer", ""), unsafe_allow_html=False)
-                if msg.get("used_rag"):
+                _ra  = msg.get("rag_answer", "")
+                _ur  = msg.get("used_rag", False)
+                _nd  = msg.get("no_doc", False)
+                if _nd:
+                    st.warning(_ra)
+                else:
+                    st.markdown(_ra, unsafe_allow_html=False)
+                if _ur:
                     st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                elif _nd:
+                    st.markdown('<span style="font-size:0.75rem;color:#6b7280">⚠️ 문서 내 관련 법 없음</span>', unsafe_allow_html=True)
                 else:
                     st.markdown('<span class="tag-llm">⚡ LLM 직접 생성</span>', unsafe_allow_html=True)
         with col_l:
@@ -515,9 +648,15 @@ if user_input:
                     )
                 rag_answer  = rag_result["answer"]
                 used_rag    = rag_result["used_rag"]
-                st.markdown(rag_answer)
+                no_doc      = rag_result.get("no_doc", False)
+                if no_doc:
+                    st.warning(rag_answer)
+                else:
+                    st.markdown(rag_answer)
                 if used_rag:
                     st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                elif no_doc:
+                    st.markdown('<span style="font-size:0.75rem;color:#6b7280">⚠️ 문서 내 관련 법 없음</span>', unsafe_allow_html=True)
                 else:
                     st.markdown('<span class="tag-llm">⚡ LLM 직접 생성</span>', unsafe_allow_html=True)
 
@@ -537,6 +676,7 @@ if user_input:
             "rag_answer": rag_answer,
             "llm_answer": llm_answer,
             "used_rag":   used_rag,
+            "no_doc":     no_doc,
         })
         st.session_state.process_log = rag_result["log"]
         st.session_state.memory.chat_memory.add_user_message(user_input)
