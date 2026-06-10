@@ -325,8 +325,15 @@ def get_llm_direct_answer(query: str, llm, memory) -> str:
 # ── 사이드바 ──────────────────────────────────────────────────────
 with st.sidebar:
     st.header("⚙️ 설정")
-    api_key = st.text_input("OpenAI API Key", type="password",
-                            value=os.getenv("OPENAI_API_KEY", ""))
+
+    # Streamlit Cloud secrets 우선, 없으면 환경변수, 없으면 빈칸
+    _default_key = ""
+    try:
+        _default_key = st.secrets.get("OPENAI_API_KEY", "") or os.getenv("OPENAI_API_KEY", "")
+    except Exception:
+        _default_key = os.getenv("OPENAI_API_KEY", "")
+
+    api_key = st.text_input("OpenAI API Key", type="password", value=_default_key)
     model_name = st.selectbox("모델", ["gpt-4o-mini", "gpt-4o"], index=0)
 
     st.divider()
@@ -345,6 +352,9 @@ with st.sidebar:
     with col2:
         chunk_overlap = st.number_input("청크 겹침", 0, 200, 80, 20)
     top_k = st.slider("검색 문서 수", 2, 8, 4)
+
+    # FAISS 저장 경로: Streamlit Cloud는 /tmp만 쓰기 가능
+    FAISS_PATH = "/tmp/faiss_legal_index"
 
     build_btn = st.button("🔨 벡터 DB 구축", use_container_width=True, type="primary")
     if build_btn:
@@ -371,7 +381,7 @@ with st.sidebar:
 
                     embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
                     vectordb = FAISS.from_documents(all_docs, embedding)
-                    vectordb.save_local("faiss_legal_index")
+                    vectordb.save_local(FAISS_PATH)
                     llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
 
                     st.session_state.vectordb = vectordb
@@ -390,13 +400,13 @@ with st.sidebar:
     if load_btn:
         if not api_key:
             st.error("API Key를 입력하세요.")
-        elif not os.path.exists("faiss_legal_index"):
-            st.warning("저장된 DB가 없습니다.")
+        elif not os.path.exists(FAISS_PATH):
+            st.warning("저장된 DB가 없습니다. 먼저 PDF를 업로드하세요.")
         else:
             with st.spinner("DB 로딩 중..."):
                 try:
                     embedding = OpenAIEmbeddings(model="text-embedding-3-large", api_key=api_key)
-                    vectordb = FAISS.load_local("faiss_legal_index", embedding,
+                    vectordb = FAISS.load_local(FAISS_PATH, embedding,
                                                 allow_dangerous_deserialization=True)
                     llm = ChatOpenAI(model=model_name, max_tokens=2000, temperature=0.1, api_key=api_key)
                     st.session_state.vectordb = vectordb
