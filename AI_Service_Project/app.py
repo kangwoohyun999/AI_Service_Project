@@ -33,182 +33,67 @@ st.set_page_config(
 
 st.markdown("""
 <style>
-    /* 기본 Streamlit 사이드바 + 토글 버튼 숨김 */
-    [data-testid="stSidebar"],
-    [data-testid="collapsedControl"] { display: none !important; }
-
-    /* 메인 영역 전체 폭 */
     [data-testid="stAppViewContainer"] { background: #f8f9fb; }
-    .main .block-container {
-        max-width: 100% !important;
-        padding-left: 1.5rem !important;
-        padding-right: 1.5rem !important;
-    }
+    [data-testid="stSidebar"]          { background: #ffffff; border-right: 1px solid #e5e7eb; }
 
-    /* 고정 설정 버튼 (스크롤해도 우상단 고정) */
-    #settings-fab {
-        position: fixed !important;
-        top: 12px !important;
-        right: 16px !important;
-        z-index: 999999 !important;
-        background: #2563eb;
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        padding: 8px 16px;
-        font-size: 14px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 2px 10px rgba(37,99,235,0.4);
-    }
-    #settings-fab:hover { background: #1d4ed8; }
-
-    /* 어두운 오버레이 */
-    #modal-overlay {
-        display: none;
-        position: fixed;
-        inset: 0;
-        background: rgba(0,0,0,0.4);
-        z-index: 99990;
-    }
-    body.modal-open #modal-overlay { display: block; }
-
-    /* 설정 패널 (우측 슬라이드, 메인 폭 변화 없음) */
-    #settings-panel {
-        position: fixed !important;
-        top: 0 !important;
-        right: -400px !important;
-        width: 360px !important;
-        height: 100vh !important;
-        background: #fff;
-        border-left: 1px solid #d1d5db;
-        box-shadow: -6px 0 24px rgba(0,0,0,0.14);
-        z-index: 99995 !important;
-        overflow-y: auto;
-        transition: right 0.28s cubic-bezier(.4,0,.2,1);
-    }
-    body.modal-open #settings-panel { right: 0 !important; }
-
-    /* 패널 헤더 */
-    #panel-hdr {
-        position: sticky; top: 0; z-index: 2;
-        background: #1e3a8a; color: #fff;
-        padding: 13px 18px;
-        font-weight: 700; font-size: 15px;
-        display: flex; align-items: center; justify-content: space-between;
-    }
-    #panel-hdr button {
-        background: none; border: none; color: #fff;
-        font-size: 20px; cursor: pointer; line-height: 1; padding: 0 2px;
-    }
-
-    /* 패널 안 Streamlit 사이드바 정리 */
-    #settings-panel [data-testid="stSidebar"] {
-        display: block !important;
-        position: static !important;
-        width: 100% !important;
-        height: auto !important;
-        background: #fff !important;
-        border: none !important;
-        box-shadow: none !important;
-        min-height: unset !important;
-    }
-
-    /* 레이아웃 고정 */
     [data-testid="stHorizontalBlock"] {
         flex-wrap: nowrap !important;
         align-items: flex-start !important;
         gap: 1.2rem !important;
     }
     [data-testid="stHorizontalBlock"] > div {
-        min-width: 0 !important; flex-shrink: 0 !important;
+        min-width: 0 !important;
+        flex-shrink: 0 !important;
     }
 
-    /* 앱 헤더 */
     .main-header {
-        background: linear-gradient(135deg,#1e3a8a,#2563eb);
-        color:#fff; padding:1.4rem 2rem; border-radius:12px; margin-bottom:1.2rem;
+        background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+        color: white;
+        padding: 1.5rem 2rem;
+        border-radius: 12px;
+        margin-bottom: 1.4rem;
     }
-    .main-header h1  { margin:0; font-size:1.7rem; letter-spacing:-.3px; }
-    .main-header .sub { margin:.3rem 0 0; opacity:.85; font-size:.88rem; }
+    .main-header h1  { margin: 0; font-size: 1.8rem; letter-spacing: -0.4px; }
+    .main-header .sub { margin: 0.35rem 0 0; opacity: 0.82; font-size: 0.9rem; }
     .main-header .warn {
-        margin:.7rem 0 0; font-size:.77rem;
-        background:#ffffff22; border:1px solid #ffffff44;
-        border-radius:6px; padding:.35rem .8rem; color:#fef3c7;
+        margin: 0.8rem 0 0; font-size: 0.78rem;
+        background: #ffffff22; border: 1px solid #ffffff44;
+        border-radius: 6px; padding: 0.4rem 0.8rem; color: #fef3c7;
     }
 
-    /* 비교 패널 헤더 */
+    /* ── 비교 패널 헤더 ── */
     .panel-header-rag {
-        background:linear-gradient(90deg,#1e3a8a,#2563eb);
-        color:#fff; padding:.5rem 1rem; border-radius:8px 8px 0 0;
-        font-weight:700; font-size:.9rem;
+        background: linear-gradient(90deg, #1e3a8a, #2563eb);
+        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
+        font-weight: 700; font-size: 0.9rem;
     }
     .panel-header-llm {
-        background:linear-gradient(90deg,#92400e,#d97706);
-        color:#fff; padding:.5rem 1rem; border-radius:8px 8px 0 0;
-        font-weight:700; font-size:.9rem;
+        background: linear-gradient(90deg, #92400e, #d97706);
+        color: white; padding: 0.55rem 1rem; border-radius: 8px 8px 0 0;
+        font-weight: 700; font-size: 0.9rem;
     }
+    .panel-body {
+        background: #ffffff; border: 1px solid #e2e8f0;
+        border-top: none; border-radius: 0 0 8px 8px;
+        padding: 1rem; min-height: 120px;
+    }
+    .diff-badge {
+        display: inline-block; font-size: 0.72rem; font-weight: 600;
+        padding: 2px 8px; border-radius: 99px; margin-top: 0.4rem;
+    }
+    .badge-rag  { background: #dbeafe; color: #1d4ed8; }
+    .badge-llm  { background: #fef3c7; color: #92400e; }
+    .badge-same { background: #dcfce7; color: #15803d; }
+
     .disclaimer {
-        background:#fff7ed; border:1px solid #fdba74;
-        border-radius:8px; padding:.65rem 1rem;
-        font-size:.77rem; color:#9a3412; margin-top:.8rem;
+        background: #fff7ed; border: 1px solid #fdba74;
+        border-radius: 8px; padding: 0.7rem 1rem;
+        font-size: 0.78rem; color: #9a3412; margin-top: 0.8rem;
     }
-    .tag-rag { font-size:.75rem; color:#15803d; }
-    .tag-llm { font-size:.75rem; color:#b45309; }
+    .tag-rag  { font-size: 0.75rem; color: #15803d; }
+    .tag-llm  { font-size: 0.75rem; color: #b45309; }
 </style>
-
-<!-- 고정 설정 버튼 -->
-<button id="settings-fab" onclick="openPanel()">&#9881;&#65039; 설정</button>
-
-<!-- 오버레이 -->
-<div id="modal-overlay" onclick="closePanel()"></div>
-
-<!-- 설정 패널 -->
-<div id="settings-panel">
-  <div id="panel-hdr">
-    <span>&#9881;&#65039; 설정</span>
-    <button onclick="closePanel()">&#x2715;</button>
-  </div>
-  <div id="panel-content" style="padding:0;"></div>
-</div>
-
-<script>
-(function(){
-  window.openPanel  = function(){ document.body.classList.add('modal-open'); };
-  window.closePanel = function(){ document.body.classList.remove('modal-open'); };
-
-  function relocate() {
-    var sb  = document.querySelector('[data-testid="stSidebar"]');
-    var dst = document.getElementById('panel-content');
-    if (!sb || !dst || dst.contains(sb)) return;
-    sb.style.cssText = [
-      'display:block!important',
-      'position:static!important',
-      'width:100%!important',
-      'height:auto!important',
-      'box-shadow:none!important',
-      'border:none!important',
-      'background:#fff!important',
-      'min-height:unset!important'
-    ].join(';');
-    dst.appendChild(sb);
-  }
-
-  function init() {
-    relocate();
-    new MutationObserver(function(ms){
-      for(var i=0;i<ms.length;i++){
-        if(ms[i].addedNodes.length){ relocate(); break; }
-      }
-    }).observe(document.body,{childList:true,subtree:true});
-  }
-
-  if(document.readyState==='loading')
-    document.addEventListener('DOMContentLoaded',function(){setTimeout(init,500);});
-  else
-    setTimeout(init,500);
-})();
-</script>""", unsafe_allow_html=True)
+""", unsafe_allow_html=True)
 
 # ── 헤더 ──────────────────────────────────────────────────────────
 st.markdown("""
