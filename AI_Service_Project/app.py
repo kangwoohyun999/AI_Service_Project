@@ -397,7 +397,7 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"오류: {e}")
 
-    if st.button("🗑️ 대화 초기화", use_container_width=True):
+    if st.button("대화 초기화", use_container_width=True):
         st.session_state.chat_history = []
         st.session_state.memory = ConversationBufferWindowMemory(
             k=5, return_messages=True, memory_key="chat_history"
@@ -470,13 +470,13 @@ col_rag, col_llm = st.columns(2)
 with col_rag:
     st.markdown("""
     <div class="panel-header-rag">
-        📖 Self-RAG 답변 &nbsp;|&nbsp; 법률 문서 기반 검색·생성
+        Self-RAG 답변 &nbsp;|&nbsp; 법률 문서 기반 검색·생성
     </div>
     """, unsafe_allow_html=True)
 with col_llm:
     st.markdown("""
     <div class="panel-header-llm">
-        🤖 순수 LLM 답변 &nbsp;|&nbsp; 학습 지식만 사용 (문서 검색 없음)
+        순수 LLM 답변 &nbsp;|&nbsp; 학습 지식만 사용 (문서 검색 없음)
     </div>
     """, unsafe_allow_html=True)
 
@@ -498,7 +498,7 @@ for msg in st.session_state.chat_history:
                 else:
                     st.markdown(_ra, unsafe_allow_html=False)
                 if _ur:
-                    st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                    st.markdown('<span class="tag-rag">Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
                 elif _nd:
                     st.markdown('<span style="font-size:0.75rem;color:#6b7280">⚠️ 문서 내 관련 법 없음</span>', unsafe_allow_html=True)
                 else:
@@ -506,7 +506,7 @@ for msg in st.session_state.chat_history:
         with col_l:
             with st.container(border=True):
                 st.markdown(msg.get("llm_answer", ""), unsafe_allow_html=False)
-                st.markdown('<span class="tag-llm">🤖 순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
+                st.markdown('<span class="tag-llm">순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
 
 # ── 입력 처리 ────────────────────────────────────────────────────
 user_input = st.chat_input("사건 내용을 자세히 설명하거나 법률 질문을 입력하세요...")
@@ -527,7 +527,7 @@ if user_input:
 
         with col_r:
             with st.container(border=True):
-                with st.spinner("📖 Self-RAG 분석 중..."):
+                with st.spinner("Self-RAG 분석 중..."):
                     rag_result = st.session_state.self_rag.process_query(
                         user_input, st.session_state.memory
                     )
@@ -539,7 +539,7 @@ if user_input:
                 else:
                     st.markdown(rag_answer)
                 if used_rag:
-                    st.markdown('<span class="tag-rag">📖 Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
+                    st.markdown('<span class="tag-rag">Self-RAG (문서 기반)</span>', unsafe_allow_html=True)
                 elif no_doc:
                     st.markdown('<span style="font-size:0.75rem;color:#6b7280">⚠️ 문서 내 관련 법 없음</span>', unsafe_allow_html=True)
                 else:
@@ -547,12 +547,12 @@ if user_input:
 
         with col_l:
             with st.container(border=True):
-                with st.spinner("🤖 순수 LLM 답변 생성 중..."):
+                with st.spinner("순수 LLM 답변 생성 중..."):
                     llm_answer = get_llm_direct_answer(
                         user_input, st.session_state.llm_direct, st.session_state.memory
                     )
                 st.markdown(llm_answer)
-                st.markdown('<span class="tag-llm">🤖 순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
+                st.markdown('<span class="tag-llm">순수 LLM (RAG 없음)</span>', unsafe_allow_html=True)
 
         # 세션 저장
         st.session_state.chat_history.append({
